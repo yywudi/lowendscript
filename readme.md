@@ -1,10 +1,11 @@
-## Debian 6/7 VPS Script
-
+## Debian 7 VPS Script
+###### Update MySQL configuration to latest 5.6 version
+###### Update PHP configuration to latest version
+###### some other packages updated
 Remove excess packages (apache2, sendmail, bind9, samba, nscd, etc) and install the basic components needed for a light-weight HTTP(S) web server:
 
  - dropbear (SSH)
  - iptables (firewall)
- - dash (replaces bash)
  - syslogd
  - MySQL (v5.5+ without Innodb, configured for lowend VPS)
  - PHP-FPM (v5.3+ with APC installed and configured)
