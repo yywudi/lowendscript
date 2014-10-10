@@ -235,6 +235,7 @@ function install_mysql {
 	# Install the MySQL packages
 	check_install mysqld mysql-server
 	check_install mysql mysql-client
+	apt-get --reinstall install bsdutils
 
 	# Install a low-end copy of the my.cnf to disable InnoDB
 	invoke-rc.d mysql stop
@@ -242,9 +243,9 @@ function install_mysql {
 # These values override values from /etc/mysql/my.cnf
 
 [mysqld]
-key_buffer = 12M
+key_buffer_size = 12M
 query_cache_size = 0
-table_cache = 32
+table_open_cache = 32
 
 init_connect='SET collation_connection = utf8_unicode_ci'
 init_connect='SET NAMES utf8' 
@@ -252,10 +253,40 @@ character-set-server = utf8
 collation-server = utf8_unicode_ci 
 skip-character-set-client-handshake
 
-default_storage_engine=MyISAM
-skip-innodb
+default-storage-engine=MyISAM
+default-tmp-storage-engine=MYISAM
+loose-skip-innodb
+ 
+loose-innodb-trx=0 
+loose-innodb-locks=0 
+loose-innodb-lock-waits=0 
+loose-innodb-cmp=0 
+loose-innodb-cmp-per-index=0
+loose-innodb-cmp-per-index-reset=0
+loose-innodb-cmp-reset=0 
+loose-innodb-cmpmem=0 
+loose-innodb-cmpmem-reset=0 
+loose-innodb-buffer-page=0 
+loose-innodb-buffer-page-lru=0 
+loose-innodb-buffer-pool-stats=0 
+loose-innodb-metrics=0 
+loose-innodb-ft-default-stopword=0 
+loose-innodb-ft-inserted=0 
+loose-innodb-ft-deleted=0 
+loose-innodb-ft-being-deleted=0 
+loose-innodb-ft-config=0 
+loose-innodb-ft-index-cache=0 
+loose-innodb-ft-index-table=0 
+loose-innodb-sys-tables=0 
+loose-innodb-sys-tablestats=0 
+loose-innodb-sys-indexes=0 
+loose-innodb-sys-columns=0 
+loose-innodb-sys-fields=0 
+loose-innodb-sys-foreign=0 
+loose-innodb-sys-foreign-cols=0
 
-log-slow-queries=/var/log/mysql/slow-queries.log
+slow-query-log = 1
+slow_query_log_file=/var/log/mysql/slow-queries.log
 
 [client]
 default-character-set = utf8
@@ -279,7 +310,7 @@ function install_php {
 	check_install php5-cli php5-cli
 
 	# PHP modules
-	DEBIAN_FRONTEND=noninteractive apt-get -y install php5-apc php5-suhosin php5-curl php5-gd php5-intl php5-mcrypt php-gettext php5-mysql php5-sqlite
+	DEBIAN_FRONTEND=noninteractive apt-get -y install php5-apc php5-curl php5-gd php5-intl php5-mcrypt php-gettext php5-mysql php5-sqlite
 
 	echo 'Using PHP-FPM to manage PHP processes'
 	echo ' '
@@ -415,8 +446,8 @@ location ~ \.php$ {
 	fastcgi_temp_file_write_size 256k;
 	fastcgi_intercept_errors    on;
 	fastcgi_ignore_client_abort off;
-	fastcgi_pass 127.0.0.1:9000;
-
+#	fastcgi_pass 127.0.0.1:9000;
+	fastcgi_pass unix:/var/run/php5-fpm.sock;
 }
 # PHP search for file Exploit:
 # The PHP regex location block fires instead of the try_files block. Therefore we need
@@ -483,8 +514,12 @@ END
 	# Setting up Nginx mapping
 	cat > "/etc/nginx/sites-available/$1.conf" <<END
 server {
+	listen 80 default;
+	return 500;
+}
+server {
 	listen 80;
-	server_name www.$1 $1;
+	server_name $1;
 	root /var/www/$1/public;
 	index index.html index.htm index.php;
 	client_max_body_size 32m;
@@ -542,6 +577,8 @@ function install_wordpress {
 	mkdir /var/www/$1/public
 
 	# Downloading the WordPress' latest and greatest distribution.
+    check_install curl curl
+    check_install ed ed
     mkdir /tmp/wordpress.$$
     wget -O - http://wordpress.org/latest.tar.gz | \
         tar zxf - -C /tmp/wordpress.$$
@@ -629,7 +666,8 @@ server {
     {
         try_files \$uri =404;
 
-        fastcgi_pass 127.0.0.1:9000;
+#        fastcgi_pass 127.0.0.1:9000;
+	fastcgi_pass unix:/var/run/php5-fpm.sock;
         fastcgi_index index.php;
         fastcgi_param SCRIPT_FILENAME /var/www/$1/public\$fastcgi_script_name;
         include fastcgi_params;
@@ -819,7 +857,7 @@ function remove_unneeded {
 # Download ps_mem.py
 ############################################################
 function install_ps_mem {
-	wget http://www.pixelbeat.org/scripts/ps_mem.py -O ~/ps_mem.py
+	wget --no-check-certificate https://raw.github.com/pixelb/ps_mem/master/ps_mem.py  -O ~/ps_mem.py
 	chmod 700 ~/ps_mem.py
 	print_info "ps_mem.py has been setup successfully"
 	print_warn "Use ~/ps_mem.py to execute"
@@ -1269,9 +1307,9 @@ system)
 	update_timezone
 	remove_unneeded
 	update_upgrade
-	install_dash
+#	install_dash
 	install_vim
-	install_nano
+#	install_nano
 	install_htop
 	install_mc
 	install_iotop
