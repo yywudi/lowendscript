@@ -457,7 +457,7 @@ location ~ \.php$ {
 END
 
 	# remove localhost-config
-	rm -f /etc/nginx/sites-enabled/default
+#	rm -f /etc/nginx/sites-enabled/default
 
 	echo 'Created /etc/nginx/php.conf for PHP sites'
 	echo 'Created /etc/nginx/sites-available/default_php sample vhost'
@@ -469,6 +469,9 @@ END
 		sed -i \
 			"s/listen \[::]:80 default_server;/listen [::]:80 default_server ipv6only=on;/" \
 			/etc/nginx/sites-available/default
+		sed -i \
+                        "s/server_name localhost;/retuen 500;/" \
+                        /etc/nginx/sites-available/default
  fi
 
  if [ -f /etc/nginx/nginx.conf ]
