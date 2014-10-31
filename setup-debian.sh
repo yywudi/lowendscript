@@ -517,10 +517,6 @@ END
 	# Setting up Nginx mapping
 	cat > "/etc/nginx/sites-available/$1.conf" <<END
 server {
-	listen 80 default;
-	return 500;
-}
-server {
 	listen 80;
 	server_name $1;
 	root /var/www/$1/public;
