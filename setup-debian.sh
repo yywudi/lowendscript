@@ -253,8 +253,37 @@ character-set-server = utf8
 collation-server = utf8_unicode_ci 
 skip-character-set-client-handshake
 
-default_storage_engine=MyISAM
-#skip-innodb
+default-storage-engine=MyISAM
+default-tmp-storage-engine=MYISAM
+loose-skip-innodb
+ 
+loose-innodb-trx=0 
+loose-innodb-locks=0 
+loose-innodb-lock-waits=0 
+loose-innodb-cmp=0 
+loose-innodb-cmp-per-index=0
+loose-innodb-cmp-per-index-reset=0
+loose-innodb-cmp-reset=0 
+loose-innodb-cmpmem=0 
+loose-innodb-cmpmem-reset=0 
+loose-innodb-buffer-page=0 
+loose-innodb-buffer-page-lru=0 
+loose-innodb-buffer-pool-stats=0 
+loose-innodb-metrics=0 
+loose-innodb-ft-default-stopword=0 
+loose-innodb-ft-inserted=0 
+loose-innodb-ft-deleted=0 
+loose-innodb-ft-being-deleted=0 
+loose-innodb-ft-config=0 
+loose-innodb-ft-index-cache=0 
+loose-innodb-ft-index-table=0 
+loose-innodb-sys-tables=0 
+loose-innodb-sys-tablestats=0 
+loose-innodb-sys-indexes=0 
+loose-innodb-sys-columns=0 
+loose-innodb-sys-fields=0 
+loose-innodb-sys-foreign=0 
+loose-innodb-sys-foreign-cols=0
 
 slow-query-log = 1
 slow_query_log_file=/var/log/mysql/slow-queries.log
