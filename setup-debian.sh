@@ -185,6 +185,14 @@ function install_dotdeb {
 		echo "deb-src http://packages.dotdeb.org wheezy all" >> /etc/apt/sources.list
 	fi
 
+        # Debian version 8.x.x
+        if grep ^8. /etc/debian_version > /dev/null
+        then
+                echo "deb http://packages.dotdeb.org jessie all" >> /etc/apt/sources.list
+                echo "deb-src http://packages.dotdeb.org jessie all" >> /etc/apt/sources.list
+        fi
+
+
 	wget -q -O - http://www.dotdeb.org/dotdeb.gpg | apt-key add -
 }
 
@@ -233,8 +241,8 @@ END
 function install_mysql {
 
 	# Install the MySQL packages
-	check_install mysqld mysql-server
-	check_install mysql mysql-client
+	check_install mysqld mariadb-server
+	check_install mysql mariadb-client
 	apt-get --reinstall install bsdutils
 
 	# Install a low-end copy of the my.cnf to disable InnoDB
@@ -244,7 +252,7 @@ function install_mysql {
 
 [mysqld]
 key_buffer_size = 12M
-query_cache_size = 0
+query_cache_size = 4M
 table_open_cache = 32
 
 init_connect='SET collation_connection = utf8_unicode_ci'
@@ -310,46 +318,11 @@ function install_php {
 	check_install php5-cli php5-cli
 
 	# PHP modules
-	DEBIAN_FRONTEND=noninteractive apt-get -y install php5-apc php5-curl php5-gd php5-intl php5-mcrypt php-gettext php5-mysql php5-sqlite
+	DEBIAN_FRONTEND=noninteractive apt-get -y install php-apc php5-curl php5-gd php5-intl php5-mcrypt php-gettext php5-mysql php5-sqlite
 
 	echo 'Using PHP-FPM to manage PHP processes'
 	echo ' '
 
-        print_info "Taking configuration backups in /root/bkps; you may keep or delete this directory"
-        mkdir /root/bkps
-	mv /etc/php5/conf.d/apc.ini /root/bkps/apc.ini
-
-cat > /etc/php5/conf.d/apc.ini <<END
-[APC]
-extension=apc.so
-apc.enabled=1
-apc.shm_segments=1
-apc.shm_size=32M
-apc.ttl=7200
-apc.user_ttl=7200
-apc.num_files_hint=1024
-apc.mmap_file_mask=/tmp/apc.XXXXXX
-apc.max_file_size = 1M
-apc.post_max_size = 1000M
-apc.upload_max_filesize = 1000M
-apc.enable_cli=0
-apc.rfc1867=0
-END
-
-	mv /etc/php5/conf.d/suhosin.ini /root/bkps/suhosin.ini
-
-cat > /etc/php5/conf.d/suhosin.ini <<END
-; configuration for php suhosin module
-extension=suhosin.so
-suhosin.executor.include.whitelist="phar"
-suhosin.request.max_vars = 2048
-suhosin.post.max_vars = 2048
-suhosin.request.max_array_index_length = 256
-suhosin.post.max_array_index_length = 256
-suhosin.request.max_totalname_length = 8192
-suhosin.post.max_totalname_length = 8192
-suhosin.sql.bailout_on_error = Off
-END
 
 	if [ -f /etc/php5/fpm/php.ini ]
 		then
@@ -457,7 +430,7 @@ location ~ \.php$ {
 END
 
 	# remove localhost-config
-#	rm -f /etc/nginx/sites-enabled/default
+	rm -f /etc/nginx/sites-enabled/default
 
 	echo 'Created /etc/nginx/php.conf for PHP sites'
 	echo 'Created /etc/nginx/sites-available/default_php sample vhost'
@@ -470,7 +443,7 @@ END
 			"s/listen \[::]:80 default_server;/listen [::]:80 default_server ipv6only=on;/" \
 			/etc/nginx/sites-available/default
 		sed -i \
-                        "s/server_name localhost;/retuen 500;/" \
+                        "s/server_name localhost;/return 500;/" \
                         /etc/nginx/sites-available/default
  fi
 
@@ -518,7 +491,7 @@ END
 	cat > "/etc/nginx/sites-available/$1.conf" <<END
 server {
 	listen 80;
-	server_name $1;
+	server_name www.$1 $1;
 	root /var/www/$1/public;
 	index index.html index.htm index.php;
 	client_max_body_size 32m;
@@ -866,7 +839,7 @@ function install_ps_mem {
 # Update apt sources (Ubuntu only; not yet supported for debian)
 ############################################################
 function update_apt_sources {
-	eval `grep '^DISTRIB_CODENAME=' /etc/*-release 2>/dev/null`
+	eval `grep '^DISTRIB_CODENAME=' /etc/lsb-release 2>/dev/null`
 
 	if [ "$DISTRIB_CODENAME" == "" ]
 	then
@@ -905,14 +878,15 @@ function install_vzfree {
 	print_warn "build-essential package is now being installed which will take additional diskspace"
 	check_install build-essential build-essential
 	cd ~
-	wget http://hostingfu.com/files/vzfree/vzfree-0.1.tgz -O vzfree-0.1.tgz
-	tar -vxf vzfree-0.1.tgz
-	cd vzfree-0.1
+	wget https://github.com/lowendbox/vzfree/archive/master.zip -O vzfree.zip
+	check_install unzip unzip 
+	unzip vzfree.zip
+	cd vzfree-master
 	make && make install
 	cd ..
 	vzfree
 	print_info "vzfree has been installed"
-	rm -fr vzfree-0.1 vzfree-0.1.tgz
+	rm -fr vzfree-master vzfree.zip
 }
 
 ############################################################
@@ -941,6 +915,11 @@ function install_webmin {
 	dpkg -i /tmp/webmin.deb
 	rm -fr /tmp/webmin.deb
 	print_warn "Special Note: If the installation ends with an error, please run it again"
+}
+
+function install_curl {
+	print_info "Checking curl"
+	check_install curl curl
 }
 
 ############################################################
@@ -1314,6 +1293,7 @@ system)
 	install_iotop
 	install_iftop
 	install_syslogd
+	install_curl
 	apt_clean
 	;;
 *)
@@ -1325,7 +1305,7 @@ system)
 	echo '  - system                 (remove unneeded, upgrade system, install software)'
 	echo '  - dropbear  [port]       (SSH server)'
 	echo '  - iptables  [port]       (setup basic firewall with HTTP(S) open)'
-	echo '  - mysql                  (install MySQL and set root password)'
+	echo '  - mysql                  (install MariaDB and set root password)'
 	echo '  - nginx                  (install nginx and create sample PHP vhosts)'
 	echo '  - php                    (install PHP5-FPM with APC, cURL, suhosin, etc...)'
 	echo '  - exim4                  (install exim4 mail server)'
